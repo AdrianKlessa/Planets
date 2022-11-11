@@ -16,6 +16,11 @@ EARTH_VELOCITY = 29.72*10**3  # m/s
 
 EARTH_POS = np.array(normalize_vector(np.array([1,1])),dtype=float)*EARTH_DISTANCE_FROM_SUN
 
+
+# TODO: Fix the positions so that sun is actually in the middle of the screen
+# TODO: Add more planets, change their render size
+# TODO: Add spaceship
+# TODO: Add spaceship controls
 Sun = phys.MyPhysObject(DISPLAY_WIDTH//2, DISPLAY_HEIGHT//2, 1.9891*(10**30), 0, 0)
 Earth = phys.MyPhysObject(EARTH_POS[0],EARTH_POS[1], 5.972*(10**24), 0, 0)
 Earth.set_velocity(np.array([0,-1], dtype=float), EARTH_VELOCITY)
