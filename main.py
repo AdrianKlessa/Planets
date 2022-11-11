@@ -26,9 +26,7 @@ Simulation.list_of_objects["Earth"] = Earth
 Simulation.list_of_objects["Sun"] = Sun
 
 display = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
-display.fill((255, 255, 255))
-pygame.draw.line(display, (0, 0, 255),
-                 (10, 10), (100, 100), width=2)
+display.fill((0, 0, 0))
 
 space_factor = 150*(10**7) #Since SI unit of distance is m we would have planets really far away in space, not visible on screen
 
@@ -45,7 +43,7 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-    display.fill((255, 255, 255))
+    display.fill((0, 0, 0))
     Simulation.update()
     for key, planet in Simulation.list_of_objects.items():
         if key == "Earth":
