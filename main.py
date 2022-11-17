@@ -19,6 +19,14 @@ SPACESHIP_POS = np.array(normalize_vector(np.array([2,1])),dtype=float)*EARTH_DI
 
 # TODO: Fix the positions so that sun is actually in the middle of the screen
 # TODO: Add more planets, change their render size
+# TODO: Add an AI, make the rewards between -1 and 1 to fit the tanh function
+# TODO: Measure the minimum distance from a spaceship to a particular planet (Mars?), make the reward a function of that distance after a set time.
+# TODO: Once the spaceship is out of fuel, no need to ask the AI for anything since it can't do anything
+
+
+
+Screen_pos = np.array([0,0])
+SCREEN_MOVE_FACTOR = 100 #  How much the screen moves with each keypress
 
 
 #Planetary bodies
@@ -42,7 +50,7 @@ display.fill((0, 0, 0))
 space_factor = 150*(10**7) #Since SI unit of distance is m we would have planets really far away in space, not visible on screen
 
 def sim_position_to_screen_position(body_pos_vector):
-    return (body_pos_vector[0]//space_factor+DISPLAY_WIDTH//3, body_pos_vector[1]//space_factor+DISPLAY_HEIGHT//3)
+    return (body_pos_vector[0]//space_factor+DISPLAY_WIDTH//3+Screen_pos[0], body_pos_vector[1]//space_factor+DISPLAY_HEIGHT//3+Screen_pos[1])
 
 def draw_body(display, body, color, r):
     screen_pos = sim_position_to_screen_position(body.position)
@@ -83,6 +91,14 @@ while True:
                 print("Rotating")
             if event.key == pygame.K_UP:
                 Spaceship.current_flow_rate=Spaceship.max_flow_rate
+            if event.key == pygame.K_w:
+                Screen_pos[1] += SCREEN_MOVE_FACTOR
+            if event.key == pygame.K_s:
+                Screen_pos[1] -= SCREEN_MOVE_FACTOR
+            if event.key == pygame.K_a:
+                Screen_pos[0] += SCREEN_MOVE_FACTOR
+            if event.key == pygame.K_d:
+                Screen_pos[0] -= SCREEN_MOVE_FACTOR
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
