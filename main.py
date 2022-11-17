@@ -5,7 +5,7 @@ import phys
 import data_laoder
 import tools
 pygame.init()
-
+clock = pygame.time.Clock()
 
 DISPLAY_WIDTH = 1920
 DISPLAY_HEIGHT = 1080
@@ -23,7 +23,7 @@ SPACESHIP_POS = np.array(tools.normalize_vector(np.array([2,1])),dtype=float)*EA
 #  make the reward a function of that distance after a set time.
 # TODO: Once the spaceship is out of fuel, no need to ask the AI for anything since it can't do anything
 
-
+# TODO: Display current time multiplier and throttle on the screen
 
 Screen_pos = np.array([0,0])
 SCREEN_MOVE_FACTOR = 100 #  How much the screen moves with each keypress
@@ -73,9 +73,9 @@ def draw_spaceship(display, ship):
                      point_2, point_3, width=2)
 
 
-Simulation.multiplier=365*24
+Simulation.multiplier=1
 
-
+clock.tick(30)
 rotation_angle=30
 
 while True:
@@ -86,7 +86,9 @@ while True:
             if event.key == pygame.K_RIGHT:
                 Spaceship.rotate_anticlockwise(360-rotation_angle)
             if event.key == pygame.K_UP:
-                Spaceship.current_flow_rate=Spaceship.max_flow_rate
+                Spaceship.current_flow_rate=min(Spaceship.max_flow_rate,Spaceship.current_flow_rate+10)
+            if event.key == pygame.K_DOWN:
+                Spaceship.current_flow_rate = max(0, Spaceship.current_flow_rate -10)
             if event.key == pygame.K_w:
                 Screen_pos[1] += SCREEN_MOVE_FACTOR
             if event.key == pygame.K_s:
@@ -99,12 +101,17 @@ while True:
                 space_factor *= 0.1
             if event.key == pygame.K_e:
                 space_factor *= 10
+            if event.key == pygame.K_z:
+                Simulation.multiplier*=0.1
+            if event.key == pygame.K_c:
+                Simulation.multiplier*=10
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
     display.fill((0, 0, 0))
     Simulation.update()
+
     for key, obj in Simulation.list_of_objects.items():
         if key == "Earth":
             draw_body(display,obj, pygame.Color('forestgreen'), 10)

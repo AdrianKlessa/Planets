@@ -2,6 +2,7 @@
 import scipy.constants as spc
 import numpy as np
 import math
+import tools
 
 def normalize_vector(a):
     return (a / np.sqrt(np.sum(a ** 2)))
@@ -38,16 +39,19 @@ class Spaceship(MyPhysObject):  # Default based on Falcon 9, hope I'm not messin
 
     def calculate_thrust(self):
         return self.current_flow_rate * self.specific_impulse
-
-    # TODO: Make sure we don't go into negative fuel_mass due to large time multipliers
     def update(self, time_multiplier):
         if self.fuel_mass>0:
             force = self.calculate_thrust() * time_multiplier
             fuel_used = self.current_flow_rate * time_multiplier
+            if(fuel_used>self.fuel_mass):
+                time_left = self.fuel_mass/self.current_flow_rate
+                force=self.calculate_thrust()*time_left
+                fuel_used=self.current_flow_rate*time_left
             self.mass -= fuel_used
             self.fuel_mass -= fuel_used
             normalized = normalize_vector(self.direction)
-            self.use_force(force * normalized*-1)
+            self.use_force(force * normalized)
+            print("Fuel left: ", self.fuel_mass)
         self.position += self.velocity * time_multiplier
 
     def __init__(self, x, y, mass, velocity_x, velocity_y, fuel_mass, specific_impulse, max_flow_rate, current_flow_rate, direction):
@@ -83,3 +87,9 @@ class Simulation:
                     object1.use_force(force * normalized)
         for key1, object1 in self.list_of_objects.items():
             object1.update(self.multiplier)
+
+    def get_distance_from_mars_to_spaceship(self):
+        mars_position = self.list_of_objects["Mars"].position
+        spaceship_position = self.list_of_objects["Spaceship"].position
+        distance_from_mars_to_spaceship = tools.vector_length(mars_position - spaceship_position)
+        return distance_from_mars_to_spaceship

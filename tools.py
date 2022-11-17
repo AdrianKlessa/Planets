@@ -7,6 +7,9 @@ def getPerpendicularVector(input_vector):
 def normalize_vector(a):
     return (a / np.sqrt(np.sum(a ** 2)))
 
+def vector_length(a):
+    return np.sqrt(np.sum(a ** 2))
+
 def random_normal_vector():
     a = random.randint(-100,100)
     b = random.randint(-100,100)
