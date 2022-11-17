@@ -89,27 +89,27 @@ while True:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
                 Spaceship.rotate_anticlockwise(ROTATION_ANGLE)
-            if event.key == pygame.K_RIGHT:
+            elif event.key == pygame.K_RIGHT:
                 Spaceship.rotate_anticlockwise(360 - ROTATION_ANGLE)
-            if event.key == pygame.K_UP:
+            elif event.key == pygame.K_UP:
                 Spaceship.current_flow_rate=min(Spaceship.max_flow_rate,Spaceship.current_flow_rate+10)
-            if event.key == pygame.K_DOWN:
+            elif event.key == pygame.K_DOWN:
                 Spaceship.current_flow_rate = max(0, Spaceship.current_flow_rate -10)
-            if event.key == pygame.K_KP_8:
+            elif event.key == pygame.K_KP_8:
                 Screen_pos[1] += SCREEN_MOVE_FACTOR
-            if event.key == pygame.K_KP_2:
+            elif event.key == pygame.K_KP_2:
                 Screen_pos[1] -= SCREEN_MOVE_FACTOR
-            if event.key == pygame.K_KP_4:
+            elif event.key == pygame.K_KP_4:
                 Screen_pos[0] += SCREEN_MOVE_FACTOR
-            if event.key == pygame.K_KP_6:
+            elif event.key == pygame.K_KP_6:
                 Screen_pos[0] -= SCREEN_MOVE_FACTOR
-            if event.key == pygame.K_KP_PLUS:
+            elif event.key == pygame.K_KP_PLUS:
                 space_factor *= 0.1
-            if event.key == pygame.K_KP_MINUS:
+            elif event.key == pygame.K_KP_MINUS:
                 space_factor *= 10
-            if event.key == pygame.K_z:
+            elif event.key == pygame.K_z:
                 Simulation.multiplier*=0.1
-            if event.key == pygame.K_c:
+            elif event.key == pygame.K_c:
                 Simulation.multiplier*=10
         if event.type == pygame.QUIT:
             pygame.quit()
