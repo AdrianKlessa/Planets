@@ -10,7 +10,8 @@ dt.set_index("Planet", inplace=True)
 
 #  TODO: Fix orbits so that they're not perfect circles
 #   (setting the velocity in the direction perp. to distance from the sun was a mistake)
-
+#   https://www.google.com/search?client=firefox-b-d&q=vis-viva+equation
+#   http://curious.astro.cornell.edu/about-us/41-our-solar-system/the-earth/orbit/85-how-fast-does-the-earth-go-at-perihelion-and-aphelion-intermediate
 def load_data():
     list_of_objects = {}
     for index, row in dt.iterrows():

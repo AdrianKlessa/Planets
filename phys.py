@@ -51,7 +51,7 @@ class Spaceship(MyPhysObject):  # Default based on Falcon 9, hope I'm not messin
             self.fuel_mass -= fuel_used
             normalized = normalize_vector(self.direction)
             self.use_force(force * normalized)
-            print("Fuel left: ", self.fuel_mass)
+            # print("Fuel left: ", self.fuel_mass)
         self.position += self.velocity * time_multiplier
 
     def __init__(self, x, y, mass, velocity_x, velocity_y, fuel_mass, specific_impulse, max_flow_rate, current_flow_rate, direction):

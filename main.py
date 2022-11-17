@@ -4,6 +4,8 @@ import sys
 import phys
 import data_laoder
 import tools
+import datetime
+
 pygame.init()
 clock = pygame.time.Clock()
 
@@ -15,6 +17,8 @@ EARTH_VELOCITY = 29.72*10**3  # m/s
 
 EARTH_POS = np.array(tools.normalize_vector(np.array([1,1])),dtype=float)*EARTH_DISTANCE_FROM_SUN
 SPACESHIP_POS = np.array(tools.normalize_vector(np.array([2,1])),dtype=float)*EARTH_DISTANCE_FROM_SUN
+
+FRAMERATE=30
 
 # TODO: Fix the positions so that sun is actually in the middle of the screen
 # TODO: Add more planets, change their render size
@@ -73,18 +77,20 @@ def draw_spaceship(display, ship):
                      point_2, point_3, width=2)
 
 
-Simulation.multiplier=1
+# 1/FRAMERATE should make it 1 second in simulation = 1 real second
+Simulation.multiplier=(1/FRAMERATE)*60*60*24
 
-clock.tick(30)
-rotation_angle=30
+clock.tick(FRAMERATE)
+ROTATION_ANGLE=15
+current_time = 0
 
 while True:
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                Spaceship.rotate_anticlockwise(rotation_angle)
+                Spaceship.rotate_anticlockwise(ROTATION_ANGLE)
             if event.key == pygame.K_RIGHT:
-                Spaceship.rotate_anticlockwise(360-rotation_angle)
+                Spaceship.rotate_anticlockwise(360 - ROTATION_ANGLE)
             if event.key == pygame.K_UP:
                 Spaceship.current_flow_rate=min(Spaceship.max_flow_rate,Spaceship.current_flow_rate+10)
             if event.key == pygame.K_DOWN:
@@ -111,7 +117,10 @@ while True:
 
     display.fill((0, 0, 0))
     Simulation.update()
-
+    current_time += Simulation.multiplier
+    td = datetime.timedelta(seconds=current_time)
+    print("Current time in seconds: ", current_time)
+    print("Current time in hh:mm:ss",td)
     for key, obj in Simulation.list_of_objects.items():
         if key == "Earth":
             draw_body(display,obj, pygame.Color('forestgreen'), 10)
