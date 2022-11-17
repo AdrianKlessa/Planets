@@ -93,10 +93,8 @@ while True:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
                 Spaceship.rotate_anticlockwise(rotation_angle)
-                print("Rotating")
             if event.key == pygame.K_RIGHT:
                 Spaceship.rotate_anticlockwise(360-rotation_angle)
-                print("Rotating")
             if event.key == pygame.K_UP:
                 Spaceship.current_flow_rate=Spaceship.max_flow_rate
             if event.key == pygame.K_w:
@@ -117,45 +115,25 @@ while True:
 
     display.fill((0, 0, 0))
     Simulation.update()
-    print(Spaceship.fuel_mass)
     for key, obj in Simulation.list_of_objects.items():
         if key == "Earth":
-            #print("Drawing Earth")
             draw_body(display,obj, pygame.Color('forestgreen'), 10)
-            #draw_body(display, planet, (125,0,125), 50)
         if key == "Sun":
-            #print("Drawing Sun")
             draw_body(display, obj, pygame.Color('goldenrod1'), 10)
-            #draw_body(display, planet, (125,0,125), 100)
         if key == "Mercury":
-            #print("Drawing Sun")
             draw_body(display, obj, pygame.Color('darkgrey'), 10)
-            #draw_body(display, planet, (125,0,125), 100)
         if key == "Venus":
-            #print("Drawing Sun")
             draw_body(display, obj, pygame.Color('saddlebrown'), 10)
-            #draw_body(display, planet, (125,0,125), 100)
         if key == "Mars":
-            #print("Drawing Sun")
             draw_body(display, obj, pygame.Color('firebrick3'), 10)
-            #draw_body(display, planet, (125,0,125), 100)
         if key == "Jupiter":
-            #print("Drawing Sun")
             draw_body(display, obj, pygame.Color('orange1'), 10)
-            #draw_body(display, planet, (125,0,125), 100)
         if key == "Saturn":
-            #print("Drawing Sun")
             draw_body(display, obj, pygame.Color('palegoldenrod'), 10)
-            #draw_body(display, planet, (125,0,125), 100)
         if key == "Uranus":
-            #print("Drawing Sun")
             draw_body(display, obj, pygame.Color('paleturquoise'), 10)
-            #draw_body(display, planet, (125,0,125), 100)
         if key == "Neptune":
-            #print("Drawing Sun")
             draw_body(display, obj, pygame.Color('royalblue'), 10)
-            #draw_body(display, planet, (125,0,125), 100)
         if key == "Spaceship":
-            #print("Drawing Spaceship")
             draw_spaceship(display, obj)
     pygame.display.update()

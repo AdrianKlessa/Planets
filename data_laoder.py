@@ -6,9 +6,6 @@ dt = pd.read_csv("solar_system_dataset.csv")
 
 dt["Planet"] = dt["Planet"].astype("string").apply(lambda x: x.strip())
 dt.set_index("Planet", inplace=True)
-print(dt.head())
-print(dt.loc['Mercury'])
-dt.info()
 
 
 #  TODO: Fix orbits so that they're not perfect circles
@@ -27,7 +24,4 @@ def load_data():
 
         Planet = phys.MyPhysObject(pos[0],pos[1],mass,velocity[0],velocity[1])
         list_of_objects[index]=Planet
-        print(index, row['Mass (10^24kg)'], row['Orbital Velocity (km/s)'])
     return list_of_objects
-print("----")
-load_data()

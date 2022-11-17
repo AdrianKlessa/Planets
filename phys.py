@@ -64,7 +64,6 @@ class Spaceship(MyPhysObject):  # Default based on Falcon 9, hope I'm not messin
         new_direction[0] = ((math.cos(rad)*self.direction[0])-(math.sin(rad)*self.direction[1]*-1))
         new_direction[1] = ((math.sin(rad) * self.direction[0]) + (math.cos(rad) * self.direction[1]*-1))*-1
         self.direction=new_direction
-        print(self.direction)
 def calculate_gravity(object1, object2):
     distance = np.linalg.norm(object1.position - object2.position)
     return (spc.G * object1.mass * object2.mass) / (distance ** 2)
