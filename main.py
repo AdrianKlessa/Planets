@@ -95,17 +95,17 @@ while True:
                 Spaceship.current_flow_rate=min(Spaceship.max_flow_rate,Spaceship.current_flow_rate+10)
             if event.key == pygame.K_DOWN:
                 Spaceship.current_flow_rate = max(0, Spaceship.current_flow_rate -10)
-            if event.key == pygame.K_w:
+            if event.key == pygame.K_KP_8:
                 Screen_pos[1] += SCREEN_MOVE_FACTOR
-            if event.key == pygame.K_s:
+            if event.key == pygame.K_KP_2:
                 Screen_pos[1] -= SCREEN_MOVE_FACTOR
-            if event.key == pygame.K_a:
+            if event.key == pygame.K_KP_4:
                 Screen_pos[0] += SCREEN_MOVE_FACTOR
-            if event.key == pygame.K_d:
+            if event.key == pygame.K_KP_6:
                 Screen_pos[0] -= SCREEN_MOVE_FACTOR
-            if event.key == pygame.K_q:
+            if event.key == pygame.K_KP_PLUS:
                 space_factor *= 0.1
-            if event.key == pygame.K_e:
+            if event.key == pygame.K_KP_MINUS:
                 space_factor *= 10
             if event.key == pygame.K_z:
                 Simulation.multiplier*=0.1
