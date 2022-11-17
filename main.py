@@ -44,6 +44,7 @@ space_factor = 150*(10**7) #Since SI unit of distance is m we would have planets
 
 #The spaceship
 Spaceship = phys.Spaceship(SPACESHIP_POS[0],SPACESHIP_POS[1],96570,0,0,92670,340*1000,2960,0,np.array([0, 1], dtype=float))
+Spaceship.set_velocity(np.array([0, 1], dtype=float),EARTH_VELOCITY)
 #Planetary bodies
 Sun = phys.MyPhysObject(0, 0, 1.9891*(10**30), 0, 0)
 Simulation.list_of_objects = data_laoder.load_data()
