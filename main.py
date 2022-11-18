@@ -77,16 +77,19 @@ def draw_spaceship(display, ship):
     pygame.draw.line(display, (255, 255, 255),
                      point_2, point_3, width=2)
 
-def draw_HUD(fuel_left, current_throttle, current_time_multiplier):
+def draw_HUD(fuel_left, current_throttle, current_time_multiplier, current_time):
     UI_string_1= "Fuel left: "+str(fuel_left)
     UI_string_2= "Throttle: "+str(current_throttle)
     UI_string_3= "Time multiplier: "+str(current_time_multiplier)
+    UI_string_4= "Time since beginning of simulation:"+str(datetime.timedelta(seconds=current_time))
     img1 = font.render(UI_string_1, True, 'aliceblue')
     img2 = font.render(UI_string_2, True, 'aliceblue')
     img3 = font.render(UI_string_3, True, 'aliceblue')
+    img4 = font.render(UI_string_4, True, 'aliceblue')
     display.blit(img1, (20, 20))
     display.blit(img2, (20, 60))
     display.blit(img3, (20, 100))
+    display.blit(img4, (20, 140))
 
 min_distance_from_mars_to_spaceship = Simulation.get_distance_from_mars_to_spaceship()
 # 1/FRAMERATE should make it 1 second in simulation = 1 real second
@@ -95,7 +98,6 @@ Simulation.multiplier=(1/FRAMERATE) #Seems fairly stable for distance from space
 
 clock.tick(FRAMERATE)
 ROTATION_ANGLE=15
-current_time = 0
 
 while True:
     for event in pygame.event.get():
@@ -130,16 +132,17 @@ while True:
 
     display.fill((0, 0, 0))
     Simulation.update()
-    current_time += Simulation.multiplier
-    td = datetime.timedelta(seconds=current_time)
+    td = datetime.timedelta(seconds=Simulation.current_time)
     distance_to_mars = Simulation.get_distance_from_mars_to_spaceship()
     if(distance_to_mars<min_distance_from_mars_to_spaceship):
         min_distance_from_mars_to_spaceship=distance_to_mars
-    print("Minimum distance to Mars: ",min_distance_from_mars_to_spaceship)
+    #print("Minimum distance to Mars: ",min_distance_from_mars_to_spaceship)
     #print("Current time in seconds: ", current_time)
     #print("Current time in hh:mm:ss",td)
     #print("Distance from earth to the sun: ",Simulation.get_distance_from_earth_to_sun())
-    draw_HUD(math.floor(Spaceship.fuel_mass),math.floor(Spaceship.current_flow_rate),round(Simulation.multiplier*FRAMERATE))
+    draw_HUD(math.floor(Spaceship.fuel_mass),math.floor(Spaceship.current_flow_rate),round(Simulation.multiplier*FRAMERATE),Simulation.current_time)
+    #print(Simulation.multiplier)
+    print(Simulation.get_AI_data())
     for key, obj in Simulation.list_of_objects.items():
         if key == "Earth":
             draw_body(display,obj, pygame.Color('forestgreen'), 10)

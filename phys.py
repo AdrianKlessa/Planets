@@ -72,11 +72,10 @@ def calculate_gravity(object1, object2):
     distance = np.linalg.norm(object1.position - object2.position)
     return (spc.G * object1.mass * object2.mass) / (distance ** 2)
 
-
 class Simulation:
     list_of_objects = {}
     multiplier = 1  # A multiplier for the forces (and inverse time)
-
+    current_time = 0
     def update(self):
         for key1, object1 in self.list_of_objects.items():
             for key2, object2 in self.list_of_objects.items():
@@ -87,6 +86,7 @@ class Simulation:
                     object1.use_force(force * normalized)
         for key1, object1 in self.list_of_objects.items():
             object1.update(self.multiplier)
+        self.current_time += self.multiplier
 
     def get_distance_from_mars_to_spaceship(self):
         mars_position = self.list_of_objects["Mars"].position
@@ -99,3 +99,24 @@ class Simulation:
         sun_position = self.list_of_objects["Sun"].position
         distance_from_earth_to_sun = tools.vector_length(earth_position - sun_position)
         return distance_from_earth_to_sun
+
+    # Data to provide: positions of astronomical objects, position of spacecraft (might be included in the previous already)
+    #                  velocities of both, current fuel left, current fuel flow, current timestamp
+    def get_AI_data(self):
+        counter=0
+        data = np.zeros(45)
+        for key1, object1 in self.list_of_objects.items():
+            pos = object1.position
+            vel = object1.velocity
+            data[counter]=pos[0]
+            data[counter+1]=pos[1]
+            data[counter+2]=vel[0]
+            data[counter+3]=vel[1]
+            counter+=4
+            if(key1=="Spaceship"):
+                data[40] = object1.fuel_mass
+                data[41] = object1.current_flow_rate
+                data[42] = self.current_time
+                data[43] = object1.direction[0]
+                data[44] = object1.direction[1]
+        return data
