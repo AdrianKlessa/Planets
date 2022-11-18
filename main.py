@@ -88,9 +88,10 @@ def draw_HUD(fuel_left, current_throttle, current_time_multiplier):
     display.blit(img2, (20, 60))
     display.blit(img3, (20, 100))
 
-
+min_distance_from_mars_to_spaceship = Simulation.get_distance_from_mars_to_spaceship()
 # 1/FRAMERATE should make it 1 second in simulation = 1 real second
-Simulation.multiplier=(1/FRAMERATE)
+Simulation.multiplier=(1/FRAMERATE) #Seems fairly stable for distance from spaceship to mars when not moving,
+                                    # up to x100 000 in the UI (so 100 000 * framerate)
 
 clock.tick(FRAMERATE)
 ROTATION_ANGLE=15
@@ -131,9 +132,13 @@ while True:
     Simulation.update()
     current_time += Simulation.multiplier
     td = datetime.timedelta(seconds=current_time)
-    print("Current time in seconds: ", current_time)
-    print("Current time in hh:mm:ss",td)
-    print("Distance from earth to the sun: ",Simulation.get_distance_from_earth_to_sun())
+    distance_to_mars = Simulation.get_distance_from_mars_to_spaceship()
+    if(distance_to_mars<min_distance_from_mars_to_spaceship):
+        min_distance_from_mars_to_spaceship=distance_to_mars
+    print("Minimum distance to Mars: ",min_distance_from_mars_to_spaceship)
+    #print("Current time in seconds: ", current_time)
+    #print("Current time in hh:mm:ss",td)
+    #print("Distance from earth to the sun: ",Simulation.get_distance_from_earth_to_sun())
     draw_HUD(math.floor(Spaceship.fuel_mass),math.floor(Spaceship.current_flow_rate),round(Simulation.multiplier*FRAMERATE))
     for key, obj in Simulation.list_of_objects.items():
         if key == "Earth":
