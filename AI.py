@@ -19,6 +19,8 @@ Y_values = np.flip(np.array([-1, -0.8, -0.5, -0.25, 0, 0.1, 0.25, 0.5, 0.7, 0.8,
 
 spline = interp.UnivariateSpline(X_values,Y_values, s=0.5)
 
+
+# TODO: Add model that takes as input the data from the simulation, an action, and returns predicted reward (So input 1+ larger than what Simulation returns)
 def score(distance):
     value = spline(distance)
     if(value<-1):
