@@ -93,3 +93,9 @@ class Simulation:
         spaceship_position = self.list_of_objects["Spaceship"].position
         distance_from_mars_to_spaceship = tools.vector_length(mars_position - spaceship_position)
         return distance_from_mars_to_spaceship
+
+    def get_distance_from_earth_to_sun(self):
+        earth_position = self.list_of_objects["Earth"].position
+        sun_position = self.list_of_objects["Sun"].position
+        distance_from_earth_to_sun = tools.vector_length(earth_position - sun_position)
+        return distance_from_earth_to_sun

@@ -5,6 +5,7 @@ import phys
 import data_laoder
 import tools
 import datetime
+import math
 
 pygame.init()
 clock = pygame.time.Clock()
@@ -32,7 +33,7 @@ FRAMERATE=30
 Screen_pos = np.array([0,0])
 SCREEN_MOVE_FACTOR = 100 #  How much the screen moves with each keypress
 
-
+font = pygame.font.SysFont(None, 24)
 
 
 Simulation = phys.Simulation()
@@ -50,7 +51,6 @@ Sun = phys.MyPhysObject(0, 0, 1.9891*(10**30), 0, 0)
 Simulation.list_of_objects = data_laoder.load_data()
 Simulation.list_of_objects["Sun"] = Sun
 Simulation.list_of_objects["Spaceship"] = Spaceship
-
 
 
 def sim_position_to_screen_position(body_pos_vector):
@@ -77,9 +77,20 @@ def draw_spaceship(display, ship):
     pygame.draw.line(display, (255, 255, 255),
                      point_2, point_3, width=2)
 
+def draw_HUD(fuel_left, current_throttle, current_time_multiplier):
+    UI_string_1= "Fuel left: "+str(fuel_left)
+    UI_string_2= "Throttle: "+str(current_throttle)
+    UI_string_3= "Time multiplier: "+str(current_time_multiplier)
+    img1 = font.render(UI_string_1, True, 'aliceblue')
+    img2 = font.render(UI_string_2, True, 'aliceblue')
+    img3 = font.render(UI_string_3, True, 'aliceblue')
+    display.blit(img1, (20, 20))
+    display.blit(img2, (20, 60))
+    display.blit(img3, (20, 100))
+
 
 # 1/FRAMERATE should make it 1 second in simulation = 1 real second
-Simulation.multiplier=(1/FRAMERATE)*60*60*24
+Simulation.multiplier=(1/FRAMERATE)
 
 clock.tick(FRAMERATE)
 ROTATION_ANGLE=15
@@ -122,6 +133,8 @@ while True:
     td = datetime.timedelta(seconds=current_time)
     print("Current time in seconds: ", current_time)
     print("Current time in hh:mm:ss",td)
+    print("Distance from earth to the sun: ",Simulation.get_distance_from_earth_to_sun())
+    draw_HUD(math.floor(Spaceship.fuel_mass),math.floor(Spaceship.current_flow_rate),round(Simulation.multiplier*FRAMERATE))
     for key, obj in Simulation.list_of_objects.items():
         if key == "Earth":
             draw_body(display,obj, pygame.Color('forestgreen'), 10)
