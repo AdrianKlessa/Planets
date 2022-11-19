@@ -97,7 +97,7 @@ Simulation.multiplier=(1/FRAMERATE) #Seems fairly stable for distance from space
                                     # up to x100 000 in the UI (so 100 000 * framerate)
 
 clock.tick(FRAMERATE)
-ROTATION_ANGLE=15
+ROTATION_ANGLE=15 #Has to be the same as in AI
 
 while True:
     for event in pygame.event.get():
@@ -119,9 +119,9 @@ while True:
             elif event.key == pygame.K_KP_6:
                 Screen_pos[0] -= SCREEN_MOVE_FACTOR
             elif event.key == pygame.K_KP_PLUS:
-                space_factor *= 0.1
+                space_factor *= 0.2
             elif event.key == pygame.K_KP_MINUS:
-                space_factor *= 10
+                space_factor *= 5
             elif event.key == pygame.K_z:
                 Simulation.multiplier*=0.1
             elif event.key == pygame.K_c:
@@ -142,7 +142,6 @@ while True:
     #print("Distance from earth to the sun: ",Simulation.get_distance_from_earth_to_sun())
     draw_HUD(math.floor(Spaceship.fuel_mass),math.floor(Spaceship.current_flow_rate),round(Simulation.multiplier*FRAMERATE),Simulation.current_time)
     #print(Simulation.multiplier)
-    print(Simulation.get_AI_data())
     for key, obj in Simulation.list_of_objects.items():
         if key == "Earth":
             draw_body(display,obj, pygame.Color('forestgreen'), 10)
@@ -165,3 +164,5 @@ while True:
         if key == "Spaceship":
             draw_spaceship(display, obj)
     pygame.display.update()
+    if Simulation.current_time>60423640:
+        print("Sim end...")

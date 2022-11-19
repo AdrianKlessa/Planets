@@ -102,9 +102,17 @@ class Simulation:
 
     # Data to provide: positions of astronomical objects, position of spacecraft (might be included in the previous already)
     #                  velocities of both, current fuel left, current fuel flow, current timestamp
+    #(8 planets + 1 Sun + 1 spacecraft)*(pos.x, pos.y, vel.x, vel.y)= 40 values
+    #Fuel mass = 1 value
+    #Current flow rate = 1 value
+    #Current time = 1 value
+    #Spacecraft direction (x, y) = 2 values
+    #min dist
+    # --> 46 values
+
     def get_AI_data(self):
         counter=0
-        data = np.zeros(45)
+        data = np.zeros(46)
         for key1, object1 in self.list_of_objects.items():
             pos = object1.position
             vel = object1.velocity
@@ -119,4 +127,5 @@ class Simulation:
                 data[42] = self.current_time
                 data[43] = object1.direction[0]
                 data[44] = object1.direction[1]
+                data[45] = self.get_distance_from_mars_to_spaceship()
         return data
