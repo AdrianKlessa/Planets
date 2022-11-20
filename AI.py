@@ -1,7 +1,7 @@
 import scipy.interpolate as interp
 import numpy as np
 import matplotlib.pyplot as plt
-from keras.optimizers import SGD
+from keras import optimizers
 
 import phys
 import data_laoder
@@ -62,12 +62,13 @@ class MyModel:
         self.loaded_model.save("my_model")
     def create_model(self):
         inputs = layers.Input(shape=(47,1))
-        layer1 = layers.Dense(512, activation="relu")(inputs)
+        layer_normalization = layers.BatchNormalization()(inputs)
+        layer1 = layers.Dense(512, activation="relu")(layer_normalization)
         layer2 = layers.Dense(256, activation="relu")(layer1)
         layer3 = layers.Dense(128, activation="relu")(layer2)
         output = layers.Dense(1,activation="tanh")(layer3)
         return keras.Model(inputs=inputs, outputs=output)
-    def train_model(self,file,lr=0.1, batch_size=128):
+    def train_model(self,file,lr=0.05, batch_size=128):
         dataframe = pd.read_csv(file)
         #number_of_rows = dataframe.shape[0]
         #y = np.zeros((number_of_rows,))
@@ -75,13 +76,13 @@ class MyModel:
         x = dataframe.iloc[:,1:48].to_numpy()
         y = dataframe.iloc[:,49].to_numpy()
 
-        opt = SGD(lr=lr)
+        opt = optimizers.Adam(lr=lr)
         self.loaded_model.compile(loss='mse', optimizer=opt)
 
         self.loaded_model.fit(
             tf.expand_dims(x,axis=-1), y,
             batch_size=batch_size,
-            epochs=1)
+            epochs=1, shuffle=True)
 
     # TODO: ValueError: Input 0 of layer "dense" is incompatible with the layer: expected min_ndim=2, found ndim=1. Full shape received: (47,)
     #       https://github.com/mrdbourke/tensorflow-deep-learning/discussions/278
@@ -107,6 +108,10 @@ def normalize_data(AI_data):
 # index, AI_data (from simulation), action, round, result = 50 columns
 # TODO: Measure inference time over a single simulation to check if a
 #  bigger network might actually be cheap and/or helpful
+# TODO: With this multiplier and doing stuff every 10 frames the AI doesn't have time to do anything after changing the throttle,
+#  #in the next move it's already out of fuel; therefore changed fuel flow change to +/- 1
+# TODO: Maybe I shouldn't treat waiting like all other actions? Maybe I should train it mostly on the other ones? But then it'll just rotate around....
+# TODO: Make it have to make a move, not wait. It can rotate but has a limited number of rotations that are available. Give it how many rotations it has left.
 def simulate(rounds, epsilon):
     dataframe_created = False
     dataframe = None
@@ -137,7 +142,7 @@ def simulate(rounds, epsilon):
             distance_to_mars = Simulation.get_distance_from_mars_to_spaceship()
             if (distance_to_mars < min_distance_from_mars_to_spaceship):
                 min_distance_from_mars_to_spaceship = distance_to_mars
-            if (frame_number % SAMPLING_INTERVAL == 0):
+            if (frame_number % SAMPLING_INTERVAL == 0 and Spaceship.fuel_mass>0):
                 # Getting the decision
                 data = Simulation.get_AI_data()
 
@@ -146,15 +151,15 @@ def simulate(rounds, epsilon):
                     choice = random.randint(0,4)
                 else:
                     for i in range(5):
-                        a = model.approximate_reward(data, i)# i is the action, a is the reword
+                        a = model.approximate_reward(data, i)# i is the action, a is the reward
                         choice_dictionary[i] = a
                     choice = max(choice_dictionary, key=choice_dictionary.get) # choose the best action according to approx. reward
 
                 # If choice==0 then we wait
                 if choice == 1:
-                    Spaceship.current_flow_rate = min(Spaceship.max_flow_rate, Spaceship.current_flow_rate + 10)
+                    Spaceship.current_flow_rate = min(Spaceship.max_flow_rate, Spaceship.current_flow_rate + 1)
                 elif choice == 2:
-                    Spaceship.current_flow_rate = max(0, Spaceship.current_flow_rate - 10)
+                    Spaceship.current_flow_rate = max(0, Spaceship.current_flow_rate - 1)
                 elif choice == 3:
                     Spaceship.rotate_anticlockwise(ROTATION_ANGLE)
                 elif choice == 4:
@@ -181,10 +186,10 @@ def simulate(rounds, epsilon):
     dataframe.to_csv(filename)
     return filename
 
-def train():
+def train(input_file):
     model = MyModel()
     model.load_model()
-    model.train_model("20221119-171116.csv")
+    model.train_model(input_file)
     model.save()
 
 # TODO: print the current iteration and epsilon
@@ -192,11 +197,12 @@ def train():
 # TODO: save intermediate models, don't overwrite (or make it an option to save backups)
 # TODO: Loss started to become NaN after ~80 rounds, check out this: https://stackoverflow.com/questions/40050397/deep-learning-nan-loss-reasons
 #   assert not np.any(np.isnan(x)) on input data before running it maybe
-def simulate_and_train(rounds):
+# TODO: Shuffle dataset before training
+def simulate_and_train(rounds,simulations_per_round,starting_epsilon):
     model = MyModel()
     model.load_model()
     for i in range(rounds):
-        filename = simulate(5,0.5-(i/rounds)*0.5)
+        filename = simulate(simulations_per_round,starting_epsilon-(i/rounds)*starting_epsilon)
         model.train_model(filename)
         model.save()
 
@@ -213,6 +219,5 @@ def visualize_spline():
         print("Value at ", x, ": ", score_from_distance(x))
 
 #model = MyModel().create_model().save("my_model")
-#train()
-#simulate(2, 0.5)
-simulate_and_train(100)
+#train("20221120-210657.csv")
+simulate_and_train(40,8,0.05)
