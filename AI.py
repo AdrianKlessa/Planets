@@ -12,7 +12,7 @@ import datetime
 import tensorflow as tf
 from tensorflow import keras
 from keras import layers
-
+import time
 
 # Reference for Q values:
 # Distance from Sun to Jupiter: 740.97 million km, so if it's that or more just return -1
@@ -37,7 +37,7 @@ EARTH_POS = np.array(tools.normalize_vector(np.array([1, 1])), dtype=float) * EA
 SPACESHIP_POS = np.array(tools.normalize_vector(np.array([2, 1])), dtype=float) * EARTH_DISTANCE_FROM_SUN
 
 ROTATION_ANGLE = 15  # Has to be the same as in main
-SAMPLING_INTERVAL = 10  # We take measurements and make decisions every SAMPLING_INTERVAL rounds
+SAMPLING_INTERVAL = 5  # We take measurements and make decisions every SAMPLING_INTERVAL rounds
 spline = interp.UnivariateSpline(X_values, Y_values, s=0.5)
 
 
@@ -54,72 +54,111 @@ def score_from_distance(distance):
     return value
 
 
+# TODO: One-hot encoding the actions
+# TODO: Add an option to append new training data to an existing "training_file.csv" and train on that
 class MyModel:
     loaded_model = None
+
     def load_model(self):
         self.loaded_model = keras.models.load_model('my_model')
+
     def save(self):
         self.loaded_model.save("my_model")
-    def create_model(self):
-        inputs = layers.Input(shape=(47,1))
-        layer_normalization = layers.BatchNormalization()(inputs)
-        layer1 = layers.Dense(512, activation="relu")(layer_normalization)
-        layer2 = layers.Dense(256, activation="relu")(layer1)
-        layer3 = layers.Dense(128, activation="relu")(layer2)
-        output = layers.Dense(1,activation="tanh")(layer3)
-        return keras.Model(inputs=inputs, outputs=output)
-    def train_model(self,file,lr=0.05, batch_size=128):
-        dataframe = pd.read_csv(file)
-        #number_of_rows = dataframe.shape[0]
-        #y = np.zeros((number_of_rows,))
-        #x = np.zeros((number_of_rows,47))
-        x = dataframe.iloc[:,1:48].to_numpy()
-        y = dataframe.iloc[:,49].to_numpy()
 
+    def create_model(self):
+        inputs = layers.Input(shape=(47, 1))
+        layer_normalization = layers.BatchNormalization()(inputs)
+        layer1 = layers.Dense(512, activation="tanh")(layer_normalization)
+        layer2 = layers.Dense(256, activation="tanh")(layer1)
+        layer3 = layers.Dense(256, activation="tanh")(layer2)
+        layer4 = layers.Dense(128, activation="tanh")(layer3)
+        layer5 = layers.Dense(64, activation="tanh")(layer4)
+        output = layers.Dense(1, activation="tanh")(layer5)
+        return keras.Model(inputs=inputs, outputs=output)
+
+    def train_model(self, file, lr=0.00005, batch_size=512, epochs=300, stop_early=True):
+        dataframe = pd.read_csv(file)
+        # number_of_rows = dataframe.shape[0]
+        # y = np.zeros((number_of_rows,))
+        # x = np.zeros((number_of_rows,47))
+        x = dataframe.iloc[:, 1:48].to_numpy()
+        y = dataframe.iloc[:, 49].to_numpy()
+        callbacks = []
+        if stop_early:
+            callbacks.append(tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10, restore_best_weights=True))
         opt = optimizers.Adam(lr=lr)
-        self.loaded_model.compile(loss='mse', optimizer=opt)
+        self.loaded_model.compile(loss=keras.losses.mean_squared_error, optimizer=opt)
 
         self.loaded_model.fit(
-            tf.expand_dims(x,axis=-1), y,
+            tf.expand_dims(x, axis=-1), y,
             batch_size=batch_size,
-            epochs=1, shuffle=True)
+            epochs=epochs, shuffle=True, callbacks=[callbacks])
 
-    # TODO: ValueError: Input 0 of layer "dense" is incompatible with the layer: expected min_ndim=2, found ndim=1. Full shape received: (47,)
-    #       https://github.com/mrdbourke/tensorflow-deep-learning/discussions/278
     def approximate_reward(self, data, action):
-        return self.loaded_model.call(tf.expand_dims(tf.convert_to_tensor((np.append(data, [action]))),axis=1)).numpy()[0]
-        #return random.uniform(-1, 1)
+        return \
+            self.loaded_model.call(tf.expand_dims(tf.convert_to_tensor((np.append(data, [action]))), axis=1)).numpy()[0]
+        # return random.uniform(-1, 1)
+
 
 # Takes AI data from the physics simulation as input and performs some normalization on it
-#TODO: Normalize data, https://stackoverflow.com/questions/61710791/should-i-use-tf-keras-utils-normalize-to-normalize-my-targets
+# TODO: Normalize data, https://stackoverflow.com/questions/61710791/should-i-use-tf-keras-utils-normalize-to-normalize-my-targets
 #                       https://keras.io/api/layers/preprocessing_layers/numerical/normalization/
-    # https://machinelearningmastery.com/using-normalization-layers-to-improve-deep-learning-models/
-    # https://stackoverflow.com/questions/46771939/batch-normalization-instead-of-input-normalization
-    # https://keras.io/api/layers/normalization_layers/layer_normalization/
-    # https://www.pinecone.io/learn/batch-layer-normalization/
-    # Generally layer normalization seems more fitting here imho
-    # https://www.tensorflow.org/api_docs/python/tf/keras/layers/LayerNormalization?hl=en
-    # https://www.youtube.com/watch?v=AFzmpEAMNp4
+# https://machinelearningmastery.com/using-normalization-layers-to-improve-deep-learning-models/
+# https://stackoverflow.com/questions/46771939/batch-normalization-instead-of-input-normalization
+# https://keras.io/api/layers/normalization_layers/layer_normalization/
+# https://www.pinecone.io/learn/batch-layer-normalization/
+# Generally layer normalization seems more fitting here imho
+# https://www.tensorflow.org/api_docs/python/tf/keras/layers/LayerNormalization?hl=en
+# https://www.youtube.com/watch?v=AFzmpEAMNp4
 def normalize_data(AI_data):
     pass
 
 
+class ScorePlot:
+    scores = []
+    figure, ax = plt.subplots(figsize=(10, 8))
+    line1, = ax.plot([0, 1, 2])
+
+    def __init__(self):
+        plt.title("AI average scores over time", fontsize=20)
+        plt.ylim(-1, 1)
+        plt.ion()
+
+    def draw_plot(self):
+        x_data = [x for x in range(len(self.scores))]
+        self.line1.set_xdata(x_data)
+        self.line1.set_ydata(self.scores)
+        plt.xlim(0, max(x_data) + 1)
+        self.figure.canvas.draw()
+        self.figure.canvas.flush_events()
+        plt.show()
+
+
+my_plot = ScorePlot()
+
+
+def aver(lst):
+    return sum(lst) / len(lst)
+
+
 # CSV data structure:
-# index, AI_data (from simulation), action, round, result = 50 columns
+# index, AI_data (from simulation), action, round, result, lambda = 51 columns
 # TODO: Measure inference time over a single simulation to check if a
 #  bigger network might actually be cheap and/or helpful
 # TODO: With this multiplier and doing stuff every 10 frames the AI doesn't have time to do anything after changing the throttle,
 #  #in the next move it's already out of fuel; therefore changed fuel flow change to +/- 1
 # TODO: Maybe I shouldn't treat waiting like all other actions? Maybe I should train it mostly on the other ones? But then it'll just rotate around....
 # TODO: Make it have to make a move, not wait. It can rotate but has a limited number of rotations that are available. Give it how many rotations it has left.
-def simulate(rounds, epsilon):
+
+def simulate(rounds, epsilon, discount_factor):
     dataframe_created = False
     dataframe = None
-    int_column_names = [x for x in range(50)]
+    int_column_names = [x for x in range(51)]
     string_column_names = [str(x) for x in int_column_names]
+    scores = []
+    model = MyModel()
+    model.load_model()
     for current_round in range(rounds):
-        model = MyModel()
-        model.load_model()
         Simulation = phys.Simulation()
         Simulation.multiplier = 3333.3333333333326
         index = 0
@@ -133,37 +172,46 @@ def simulate(rounds, epsilon):
         Simulation.list_of_objects["Sun"] = Sun
         Simulation.list_of_objects["Spaceship"] = Spaceship
         frame_number = 0
-        right_side = np.array([0, 0, 0], dtype=float)  # action,round,result
+        right_side = np.array([0, 0, 0, 0], dtype=float)  # action,round,result
         data = Simulation.get_AI_data()
         min_distance_from_mars_to_spaceship = Simulation.get_distance_from_mars_to_spaceship()
         choice_dictionary = {}
+        time_appending = 0.0
+        time_infering = 0.0
         while Simulation.current_time <= 60423640:
             Simulation.update()
             distance_to_mars = Simulation.get_distance_from_mars_to_spaceship()
             if (distance_to_mars < min_distance_from_mars_to_spaceship):
                 min_distance_from_mars_to_spaceship = distance_to_mars
-            if (frame_number % SAMPLING_INTERVAL == 0 and Spaceship.fuel_mass>0):
+            if (frame_number % SAMPLING_INTERVAL == 0 and Spaceship.fuel_mass > 0):
                 # Getting the decision
                 data = Simulation.get_AI_data()
 
                 random_value = random.uniform(0, 1)
-                if(random_value<epsilon):
-                    choice = random.randint(0,4)
+                if (random_value < epsilon):
+                    choice = random.randint(1, 4)
                 else:
-                    for i in range(5):
-                        a = model.approximate_reward(data, i)# i is the action, a is the reward
+                    for i in range(1, 5):
+                        start_time = time.time()
+                        a = model.approximate_reward(data, i)  # i is the action, a is the reward
+                        end_time = time.time()
+                        time_infering += (end_time - start_time)
                         choice_dictionary[i] = a
-                    choice = max(choice_dictionary, key=choice_dictionary.get) # choose the best action according to approx. reward
-
+                    choice = max(choice_dictionary,
+                                 key=choice_dictionary.get)  # choose the best action according to approx. reward
+                rotations_left = Spaceship.rotations_left
                 # If choice==0 then we wait
-                if choice == 1:
+                if choice == 1 or rotations_left <= 0:
                     Spaceship.current_flow_rate = min(Spaceship.max_flow_rate, Spaceship.current_flow_rate + 1)
                 elif choice == 2:
                     Spaceship.current_flow_rate = max(0, Spaceship.current_flow_rate - 1)
+                    Spaceship.rotations_left -= 1
                 elif choice == 3:
                     Spaceship.rotate_anticlockwise(ROTATION_ANGLE)
+                    Spaceship.rotations_left -= 1
                 elif choice == 4:
                     Spaceship.rotate_anticlockwise(360 - ROTATION_ANGLE)
+                    Spaceship.rotations_left -= 1
                 # Adding data to the dataset
                 data = np.append(index, data)
                 right_side[0] = choice
@@ -173,18 +221,32 @@ def simulate(rounds, epsilon):
                     dataframe_created = True
                     dataframe = pd.DataFrame([data], columns=string_column_names)
                 else:
-                    dataframe = pd.concat([dataframe, pd.DataFrame([data], columns=string_column_names)])# TODO: Check performance implications
+                    start_time = time.time()
+                    dataframe = pd.concat([dataframe, pd.DataFrame([data],
+                                                                   columns=string_column_names)])  # TODO: Check performance implications
+                    end_time = time.time()
+                    time_appending += (end_time - start_time)
+                if (Simulation.get_distance_from_mars_to_spaceship() >= 500090000000.0):
+                    Simulation.current_time = 70423640
                 index += 1
             frame_number += 1
-        query = "@dataframe['48']=="+str(current_round)
+        final_index = index
+        query = "@dataframe['48']==" + str(current_round)
         final_score = score_from_distance(min_distance_from_mars_to_spaceship)
-        dataframe.loc[dataframe.eval(query), '49'] = final_score
-        print("Finished simulation round: ", current_round, ", final score: ", final_score)
-    filename = str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))+".csv"
+        scores.append(final_score)
+        dataframe.loc[dataframe.eval(query), '50'] = pow(discount_factor,
+                                                         final_index - dataframe.loc[dataframe.eval(query), '0'] - 1)
+        dataframe.loc[dataframe.eval(query), '49'] = final_score * dataframe.loc[dataframe.eval(query), '50']
+        print("Finished simulation round: ", current_round + 1, " of ", rounds, ", final score: ", final_score,
+              "; Epsilon was: ", epsilon, ", time spent appending DF (in  seconds): ", time_appending,
+              "; total inference time this round (s): ", time_infering)
+    filename = str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")) + ".csv"
+    my_plot.scores.append(aver(scores))
     # print("Dataframe memory usage in bytes: ",dataframe.memory_usage(index=True).sum())
     # print(dataframe.columns)
     dataframe.to_csv(filename)
     return filename
+
 
 def train(input_file):
     model = MyModel()
@@ -192,18 +254,26 @@ def train(input_file):
     model.train_model(input_file)
     model.save()
 
-# TODO: print the current iteration and epsilon
-# TODO: Make the epsilon (0.5 in this case) a parameter
+
 # TODO: save intermediate models, don't overwrite (or make it an option to save backups)
-# TODO: Loss started to become NaN after ~80 rounds, check out this: https://stackoverflow.com/questions/40050397/deep-learning-nan-loss-reasons
-#   assert not np.any(np.isnan(x)) on input data before running it maybe
-# TODO: Shuffle dataset before training
-def simulate_and_train(rounds,simulations_per_round,starting_epsilon):
+# TODO: Plot progress (maybe look online how to do it in a separate window in PyCharm) https://www.geeksforgeeks.org/how-to-update-a-plot-on-same-figure-during-the-loop/
+def simulate_and_train(rounds, simulations_per_round, starting_epsilon, starting_learning_rate, draw_plot,
+                       epsilon_decay, lr_decay, discount_factor, epochs_per_round, stop_early):
     model = MyModel()
     model.load_model()
+    epsilon = starting_epsilon
+    learning_rate = starting_learning_rate
     for i in range(rounds):
-        filename = simulate(simulations_per_round,starting_epsilon-(i/rounds)*starting_epsilon)
-        model.train_model(filename)
+        if epsilon_decay:
+            epsilon = starting_epsilon - (i / rounds) * starting_epsilon
+        if lr_decay:
+            learning_rate = (starting_learning_rate - (
+                    i / rounds) * starting_learning_rate) + 0.001  # 0 or less doesn't make any sense
+        print("Starting training round ", i + 1, " of ", rounds, ", learning rate is: ", learning_rate)
+        filename = simulate(simulations_per_round, epsilon, discount_factor)
+        if (draw_plot == True):
+            my_plot.draw_plot()
+        model.train_model(filename, lr=learning_rate, epochs=epochs_per_round, stop_early=stop_early)
         model.save()
 
 
@@ -218,6 +288,12 @@ def visualize_spline():
     for x in np.nditer(X_values):
         print("Value at ", x, ": ", score_from_distance(x))
 
+
 #model = MyModel().create_model().save("my_model")
-#train("20221120-210657.csv")
-simulate_and_train(40,8,0.05)
+#train("training_file.csv")
+
+
+simulate_and_train(rounds=10, simulations_per_round=100, starting_epsilon=0.3, starting_learning_rate=0.0001,
+                   draw_plot=False, epsilon_decay=True, lr_decay=False, discount_factor=0.85, epochs_per_round=300,
+                   stop_early=True)
+# simulate(6,0.3)

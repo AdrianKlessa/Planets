@@ -30,13 +30,14 @@ class MyPhysObject:
 
 
 # Thanks https://space.stackexchange.com/questions/30497
+# TODO: Move rotation controls directly here
 class Spaceship(MyPhysObject):  # Default based on Falcon 9, hope I'm not messing up the data here
     fuel_mass = 92670  # kg
     specific_impulse = 340  # s
     max_flow_rate = 2960  # kg/s
     current_flow_rate = 0  # kg/s
     direction = np.array([1, 0], dtype=float)  # Facing direction, vector, hopefully normalized but let's assume not
-
+    rotations_left = 30
     def calculate_thrust(self):
         return self.current_flow_rate * self.specific_impulse
     def update(self, time_multiplier):
@@ -122,6 +123,7 @@ class Simulation:
             data[counter+3]=vel[1]
             counter+=4
             if(key1=="Spaceship"):
+                data[39] = object1.rotations_left #TODO : Don't overwrite Neptune's data as a quick hack
                 data[40] = object1.fuel_mass
                 data[41] = object1.current_flow_rate
                 data[42] = self.current_time
