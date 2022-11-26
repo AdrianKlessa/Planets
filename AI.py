@@ -66,7 +66,7 @@ class MyModel:
         self.loaded_model.save("my_model")
 
     def create_model(self):
-        inputs = layers.Input(shape=(47, 1))
+        inputs = layers.Input(shape=(47,))
         layer_normalization = layers.BatchNormalization()(inputs)
         layer1 = layers.Dense(512, activation="tanh")(layer_normalization)
         layer2 = layers.Dense(256, activation="tanh")(layer1)
@@ -76,27 +76,34 @@ class MyModel:
         output = layers.Dense(1, activation="tanh")(layer5)
         return keras.Model(inputs=inputs, outputs=output)
 
-    def train_model(self, file, lr=0.00005, batch_size=512, epochs=300, stop_early=True):
+    def train_model(self, file, lr=0.00005, batch_size=512, epochs=300, stop_early=True, visualize_only=False):
         dataframe = pd.read_csv(file)
         # number_of_rows = dataframe.shape[0]
         # y = np.zeros((number_of_rows,))
         # x = np.zeros((number_of_rows,47))
-        x = dataframe.iloc[:, 1:48].to_numpy()
-        y = dataframe.iloc[:, 49].to_numpy()
+        x = dataframe.iloc[:, 2:49].to_numpy()
+        y = dataframe.iloc[:, 50].to_numpy()
+        print("Input: ")
+        print(x)
+        print("Target: ")
+        print(y)
         callbacks = []
         if stop_early:
             callbacks.append(tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10, restore_best_weights=True))
         opt = optimizers.Adam(lr=lr)
         self.loaded_model.compile(loss=keras.losses.mean_squared_error, optimizer=opt)
-
-        self.loaded_model.fit(
-            tf.expand_dims(x, axis=-1), y,
-            batch_size=batch_size,
-            epochs=epochs, shuffle=True, callbacks=[callbacks])
+        print("Shape of input: ",tf.convert_to_tensor(x).get_shape())
+        print("Shape of target: ",tf.convert_to_tensor(y).get_shape())
+        self.loaded_model.summary()
+        if not visualize_only:
+            self.loaded_model.fit(
+                x, y,
+                batch_size=batch_size,
+                epochs=epochs, shuffle=True, callbacks=[callbacks])
 
     def approximate_reward(self, data, action):
         return \
-            self.loaded_model.call(tf.expand_dims(tf.convert_to_tensor((np.append(data, [action]))), axis=1)).numpy()[0]
+            self.loaded_model.call(tf.expand_dims(tf.convert_to_tensor((np.append(data, [action]))), axis=0)).numpy()[0][0]
         # return random.uniform(-1, 1)
 
 
@@ -113,7 +120,7 @@ class MyModel:
 def normalize_data(AI_data):
     pass
 
-
+#TODO: Switch this from interactive to creating plot images in a new directory
 class ScorePlot:
     scores = []
     figure, ax = plt.subplots(figsize=(10, 8))
@@ -149,6 +156,7 @@ def aver(lst):
 #  #in the next move it's already out of fuel; therefore changed fuel flow change to +/- 1
 # TODO: Maybe I shouldn't treat waiting like all other actions? Maybe I should train it mostly on the other ones? But then it'll just rotate around....
 # TODO: Make it have to make a move, not wait. It can rotate but has a limited number of rotations that are available. Give it how many rotations it has left.
+# TODO: Print max predicted Q at each step and verify that the formula for updating the dataframe at the end works
 
 def simulate(rounds, epsilon, discount_factor):
     dataframe_created = False
@@ -158,7 +166,9 @@ def simulate(rounds, epsilon, discount_factor):
     scores = []
     model = MyModel()
     model.load_model()
+    previous_dataframe_index=-1
     for current_round in range(rounds):
+        first_choice = True
         Simulation = phys.Simulation()
         Simulation.multiplier = 3333.3333333333326
         index = 0
@@ -172,7 +182,7 @@ def simulate(rounds, epsilon, discount_factor):
         Simulation.list_of_objects["Sun"] = Sun
         Simulation.list_of_objects["Spaceship"] = Spaceship
         frame_number = 0
-        right_side = np.array([0, 0, 0, 0], dtype=float)  # action,round,result
+        right_side = np.array([0, 0, 0, 0], dtype=float)  # action,round,result, discount factor
         data = Simulation.get_AI_data()
         min_distance_from_mars_to_spaceship = Simulation.get_distance_from_mars_to_spaceship()
         choice_dictionary = {}
@@ -186,19 +196,20 @@ def simulate(rounds, epsilon, discount_factor):
             if (frame_number % SAMPLING_INTERVAL == 0 and Spaceship.fuel_mass > 0):
                 # Getting the decision
                 data = Simulation.get_AI_data()
-
                 random_value = random.uniform(0, 1)
+                for i in range(1, 5):
+                    start_time = time.time()
+                    a = model.approximate_reward(data, i)  # i is the action, a is the reward
+                    end_time = time.time()
+                    time_infering += (end_time - start_time)
+                    choice_dictionary[i] = a
+                choice = max(choice_dictionary,
+                             key=choice_dictionary.get)  # choose the best action according to approx. reward
+                predicted_max_Q = choice_dictionary[choice]
+                print("Max predicted Q value for round ",previous_dataframe_index+1,": ",predicted_max_Q)
                 if (random_value < epsilon):
+                    print("Made a random move instead")
                     choice = random.randint(1, 4)
-                else:
-                    for i in range(1, 5):
-                        start_time = time.time()
-                        a = model.approximate_reward(data, i)  # i is the action, a is the reward
-                        end_time = time.time()
-                        time_infering += (end_time - start_time)
-                        choice_dictionary[i] = a
-                    choice = max(choice_dictionary,
-                                 key=choice_dictionary.get)  # choose the best action according to approx. reward
                 rotations_left = Spaceship.rotations_left
                 # If choice==0 then we wait
                 if choice == 1 or rotations_left <= 0:
@@ -226,21 +237,28 @@ def simulate(rounds, epsilon, discount_factor):
                                                                    columns=string_column_names)])  # TODO: Check performance implications
                     end_time = time.time()
                     time_appending += (end_time - start_time)
+                if first_choice!=True:
+                    dataframe.iloc[previous_dataframe_index]['49']=predicted_max_Q
+                first_choice=False
+                previous_dataframe_index+=1
                 if (Simulation.get_distance_from_mars_to_spaceship() >= 500090000000.0):
                     Simulation.current_time = 70423640
                 index += 1
             frame_number += 1
         final_index = index
+        dataframe.iloc[-1]['49'] = 0
         query = "@dataframe['48']==" + str(current_round)
         final_score = score_from_distance(min_distance_from_mars_to_spaceship)
         scores.append(final_score)
+        print(dataframe.loc[dataframe.eval(query), '50'].shape[0])
         dataframe.loc[dataframe.eval(query), '50'] = pow(discount_factor,
                                                          final_index - dataframe.loc[dataframe.eval(query), '0'] - 1)
-        dataframe.loc[dataframe.eval(query), '49'] = final_score * dataframe.loc[dataframe.eval(query), '50']
+        dataframe.loc[dataframe.eval(query), '49'] = dataframe.loc[dataframe.eval(query), '49']*dataframe.loc[dataframe.eval(query), '50']*(2/3)+final_score   #final_score * dataframe.loc[dataframe.eval(query), '50']
         print("Finished simulation round: ", current_round + 1, " of ", rounds, ", final score: ", final_score,
               "; Epsilon was: ", epsilon, ", time spent appending DF (in  seconds): ", time_appending,
               "; total inference time this round (s): ", time_infering)
     filename = str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")) + ".csv"
+    print("Average score this training round was: ",aver(scores))
     my_plot.scores.append(aver(scores))
     # print("Dataframe memory usage in bytes: ",dataframe.memory_usage(index=True).sum())
     # print(dataframe.columns)
@@ -248,10 +266,10 @@ def simulate(rounds, epsilon, discount_factor):
     return filename
 
 
-def train(input_file):
+def train(input_file, visualize_only=False):
     model = MyModel()
     model.load_model()
-    model.train_model(input_file)
+    model.train_model(input_file,visualize_only=visualize_only)
     model.save()
 
 
@@ -289,11 +307,12 @@ def visualize_spline():
         print("Value at ", x, ": ", score_from_distance(x))
 
 
-#model = MyModel().create_model().save("my_model")
-#train("training_file.csv")
+model = MyModel().create_model().save("my_model")
+train("training_file.csv", visualize_only=False)
 
 
-simulate_and_train(rounds=10, simulations_per_round=100, starting_epsilon=0.3, starting_learning_rate=0.0001,
-                   draw_plot=False, epsilon_decay=True, lr_decay=False, discount_factor=0.85, epochs_per_round=300,
-                   stop_early=True)
-# simulate(6,0.3)
+simulate_and_train(rounds=100, simulations_per_round=20, starting_epsilon=0.5, starting_learning_rate=0.01,
+                   draw_plot=True, epsilon_decay=True, lr_decay=True, discount_factor=0.85, epochs_per_round=1,
+                   stop_early=False)
+#train("training_file.csv", visualize_only=False)
+#simulate(6,0.3,0.9)
