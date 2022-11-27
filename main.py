@@ -6,10 +6,11 @@ import data_laoder
 import tools
 import datetime
 import math
-
+import AI
 pygame.init()
 clock = pygame.time.Clock()
 
+AI_CONTROLLED=True
 DISPLAY_WIDTH = 1920
 DISPLAY_HEIGHT = 1080
 
@@ -91,14 +92,38 @@ def draw_HUD(fuel_left, current_throttle, current_time_multiplier, current_time)
     display.blit(img3, (20, 100))
     display.blit(img4, (20, 140))
 
+model = AI.MyModel()
+model.load_model()
+
+choice_dictionary = {} #For AI decisions
+current_frame_index = 0
+ROTATION_ANGLE=15 #Has to be the same as in AI
+def get_AI_controls():
+    if AI_CONTROLLED and current_frame_index%AI.SAMPLING_INTERVAL == 0 and Spaceship.fuel_mass > 0:
+        data = Simulation.get_AI_data()
+        for i in range(1, 5):
+            a = model.approximate_reward(data, i)  # i is the action, a is the reward
+            choice_dictionary[i] = a
+        choice = max(choice_dictionary,
+                     key=choice_dictionary.get)
+        if choice == 1 or Spaceship.rotations_left <= 0:
+            Spaceship.current_flow_rate = min(Spaceship.max_flow_rate, Spaceship.current_flow_rate + 1)
+        elif choice == 2:
+            Spaceship.current_flow_rate = max(0, Spaceship.current_flow_rate - 1)
+            Spaceship.rotations_left -= 1
+        elif choice == 3:
+            Spaceship.rotate_anticlockwise(ROTATION_ANGLE)
+            Spaceship.rotations_left -= 1
+        elif choice == 4:
+            Spaceship.rotate_anticlockwise(360 - ROTATION_ANGLE)
+            Spaceship.rotations_left -= 1
+
 min_distance_from_mars_to_spaceship = Simulation.get_distance_from_mars_to_spaceship()
 # 1/FRAMERATE should make it 1 second in simulation = 1 real second
-Simulation.multiplier=(1/FRAMERATE) #Seems fairly stable for distance from spaceship to mars when not moving,
+# AI probably won't work with a multiplier different than the one it got trained for
+Simulation.multiplier=3333.3333333333326#(1/FRAMERATE) #Seems fairly stable for distance from spaceship to mars when not moving,
                                     # up to x100 000 in the UI (so 100 000 * framerate)
-
 clock.tick(FRAMERATE)
-ROTATION_ANGLE=15 #Has to be the same as in AI
-
 while True:
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:
@@ -129,7 +154,6 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-
     display.fill((0, 0, 0))
     Simulation.update()
     td = datetime.timedelta(seconds=Simulation.current_time)
@@ -142,6 +166,8 @@ while True:
     #print("Distance from earth to the sun: ",Simulation.get_distance_from_earth_to_sun())
     draw_HUD(math.floor(Spaceship.fuel_mass),math.floor(Spaceship.current_flow_rate),round(Simulation.multiplier*FRAMERATE),Simulation.current_time)
     #print(Simulation.multiplier)
+    get_AI_controls()
+    current_frame_index+=1
     for key, obj in Simulation.list_of_objects.items():
         if key == "Earth":
             draw_body(display,obj, pygame.Color('forestgreen'), 10)
