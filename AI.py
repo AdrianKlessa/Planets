@@ -2,6 +2,7 @@ import scipy.interpolate as interp
 import numpy as np
 import matplotlib.pyplot as plt
 from keras import optimizers
+from pathos.multiprocessing import ProcessPool
 
 import phys
 import data_laoder
@@ -16,6 +17,7 @@ import time
 import os
 import threading
 from os.path import join
+from pathos.pools import ParallelPool
 # Reference for Q values:
 # Distance from Sun to Jupiter: 740.97 million km, so if it's that or more just return -1
 # Measure the default max distance if we didn't do anything, make that return 0
@@ -80,11 +82,19 @@ class MyModel:
 
     def train_model(self, file, lr=0.00005, batch_size=512, epochs=300, stop_early=True, visualize_only=False):
         dataframe = pd.read_csv(file)
+        unnamed_name_columns = [col for col in dataframe.columns if 'Unnamed' in col]
+        unnamed_index_column=False
+        if(len(unnamed_name_columns))>0:
+            unnamed_index_column=True
         # number_of_rows = dataframe.shape[0]
         # y = np.zeros((number_of_rows,))
         # x = np.zeros((number_of_rows,47))
-        x = dataframe.iloc[:, 2:49].to_numpy()
-        y = dataframe.iloc[:, 50].to_numpy()
+        if(unnamed_index_column):
+            x = dataframe.iloc[:, 3:50].to_numpy()
+            y = dataframe.iloc[:, 51].to_numpy()
+        else:
+            x = dataframe.iloc[:, 2:49].to_numpy()
+            y = dataframe.iloc[:, 50].to_numpy()
         print("Input: ")
         print(x)
         print("Target: ")
@@ -285,8 +295,18 @@ def simulate(rounds, epsilon, discount_factor, thread_filename="-1"):
 def multithread_simulation(threads, simulation_rounds_per_thread, epsilon, discount_factor):
     directory_name = "multithread_batches/"+str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     os.makedirs(directory_name)
-    thread_list = []
     start_time = time.time()
+    rounds_list = [simulation_rounds_per_thread]*threads
+    epsilon_list = [epsilon]*threads
+    discount_factor_list = [discount_factor]*threads
+    filename_list = []
+    pool = ProcessPool(nodes=threads)
+    for i in range(threads):
+        filename_list.append(directory_name+"/"+str(i)+".csv")
+    pool.map(simulate,rounds_list,epsilon_list,discount_factor_list,filename_list)
+    """
+    thread_list = []
+    
     for i in range(threads):
         filename = directory_name+"_"+str(i)
         # def simulate(rounds, epsilon, discount_factor, thread_filename="-1"):
@@ -295,19 +315,19 @@ def multithread_simulation(threads, simulation_rounds_per_thread, epsilon, disco
         new_thread.start()
     for current_thread in thread_list:
         current_thread.join()
+    """
     end_time = time.time()
     print("Multithreaded simulation time in seconds: "+str(start_time-end_time))
-    csv_files = [f for f in os.listdir(directory_name) if os.isfile(join(directory_name, f))]
+    csv_files = [f for f in os.listdir(directory_name) if os.path.isfile(join(directory_name, f))]
     dataframe_read = False
     for csv_file in csv_files:
-
         if not dataframe_read:
             dataframe_read=True
-            dataframe = pd.read_csv(csv_file)
+            dataframe = pd.read_csv(directory_name+"/"+csv_file)
         else:
-            new_dataframe = pd.read_csv(csv_file)
-            dataframe = pd.concat(dataframe,new_dataframe)
-    return_filename = "multithreaded_batch"+str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+            new_dataframe = pd.read_csv(directory_name+"/"+csv_file)
+            dataframe = pd.concat([dataframe,new_dataframe])
+    return_filename = "multithreaded_batch"+str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))+".csv"
     dataframe.to_csv(return_filename)
     return return_filename
 
@@ -321,7 +341,7 @@ def train(input_file, visualize_only=False):
 # TODO: save intermediate models, don't overwrite (or make it an option to save backups)
 # TODO: Plot progress (maybe look online how to do it in a separate window in PyCharm) https://www.geeksforgeeks.org/how-to-update-a-plot-on-same-figure-during-the-loop/
 def simulate_and_train(rounds, simulations_per_round, starting_epsilon, starting_learning_rate, draw_plot,
-                       epsilon_decay, lr_decay, discount_factor, epochs_per_round, stop_early):
+                       epsilon_decay, lr_decay, discount_factor, epochs_per_round, stop_early, multithreaded=False, threads=8):
     model = MyModel()
     model.load_model()
     epsilon = starting_epsilon
@@ -335,8 +355,11 @@ def simulate_and_train(rounds, simulations_per_round, starting_epsilon, starting
             #learning_rate = (starting_learning_rate - (
             #        i / rounds) * starting_learning_rate) + very_tiny_learning_rate  # 0 or less doesn't make any sense
         print("Starting training round ", i + 1, " of ", rounds, ", learning rate is: ", learning_rate)
-        filename = simulate(simulations_per_round, epsilon, discount_factor)
-        if (draw_plot == True):
+        if(multithreaded):
+            filename = multithread_simulation(threads=threads, simulation_rounds_per_thread=simulations_per_round//threads, epsilon=epsilon, discount_factor=discount_factor)
+        else:
+            filename = simulate(simulations_per_round, epsilon, discount_factor)
+        if (draw_plot == True and multithreaded==False): #TODO: Fix this in multithreading, right now the score object is not passed to child threads so scores are empty
             my_plot.draw_plot()
         model.train_model(filename, lr=learning_rate, epochs=epochs_per_round, stop_early=stop_early)
         model.save()
@@ -354,7 +377,11 @@ def visualize_spline():
         print("Value at ", x, ": ", score_from_distance(x))
 
 if __name__ == '__main__':
-    multithread_simulation(threads=50, simulation_rounds_per_thread=2, epsilon=0.3, discount_factor=0.85)
+    #model = MyModel().create_model().save("my_model")
+    #multithread_simulation(threads=8, simulation_rounds_per_thread=2, epsilon=0.3, discount_factor=0.85)
+    simulate_and_train(rounds=20, simulations_per_round=72, starting_epsilon=0.3, starting_learning_rate=0.01,
+                       draw_plot=True, epsilon_decay=True, lr_decay=True, discount_factor=0.85, epochs_per_round=1,
+                       stop_early=False, multithreaded=True, threads=12)
 
 #model = MyModel().create_model().save("my_model")
 #train("training_file.csv", visualize_only=False)
