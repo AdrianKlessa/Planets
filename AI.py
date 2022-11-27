@@ -13,7 +13,9 @@ import tensorflow as tf
 from tensorflow import keras
 from keras import layers
 import time
-
+import os
+import threading
+from os.path import join
 # Reference for Q values:
 # Distance from Sun to Jupiter: 740.97 million km, so if it's that or more just return -1
 # Measure the default max distance if we didn't do anything, make that return 0
@@ -91,7 +93,7 @@ class MyModel:
         if stop_early:
             callbacks.append(tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10, restore_best_weights=True))
         opt = optimizers.Adam(lr=lr)
-        self.loaded_model.compile(loss=keras.losses.mean_squared_error, optimizer=opt)
+        self.loaded_model.compile(loss=keras.losses.mean_absolute_error, optimizer=opt)
         print("Shape of input: ",tf.convert_to_tensor(x).get_shape())
         print("Shape of target: ",tf.convert_to_tensor(y).get_shape())
         self.loaded_model.summary()
@@ -127,11 +129,22 @@ class ScorePlot:
     line1, = ax.plot([0, 1, 2])
 
     def __init__(self):
-        plt.title("AI average scores over time", fontsize=20)
+
         plt.ylim(-1, 1)
-        plt.ion()
 
     def draw_plot(self):
+        plt.figure()
+        x_data = [x for x in range(len(self.scores))]
+        y_data = self.scores
+        plt.title("AI average scores over time", fontsize=20)
+        plt.xlabel('Round number')
+        plt.ylabel('Score')
+        plt.xlim(0, max(x_data) + 1)
+        plt.ylim(-1, 1)
+        plt.plot(x_data,y_data, marker='o')
+        filename = str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")) + ".jpg"
+        plt.savefig("Plots/"+filename)
+    def draw_plot_old(self):
         x_data = [x for x in range(len(self.scores))]
         self.line1.set_xdata(x_data)
         self.line1.set_ydata(self.scores)
@@ -158,7 +171,8 @@ def aver(lst):
 # TODO: Make it have to make a move, not wait. It can rotate but has a limited number of rotations that are available. Give it how many rotations it has left.
 # TODO: Print max predicted Q at each step and verify that the formula for updating the dataframe at the end works
 
-def simulate(rounds, epsilon, discount_factor):
+def simulate(rounds, epsilon, discount_factor, thread_filename="-1"):
+    print("Rounds: ",rounds," thread_filename: ",thread_filename)
     dataframe_created = False
     dataframe = None
     int_column_names = [x for x in range(51)]
@@ -253,11 +267,14 @@ def simulate(rounds, epsilon, discount_factor):
         print(dataframe.loc[dataframe.eval(query), '50'].shape[0])
         dataframe.loc[dataframe.eval(query), '50'] = pow(discount_factor,
                                                          final_index - dataframe.loc[dataframe.eval(query), '0'] - 1)
-        dataframe.loc[dataframe.eval(query), '49'] = dataframe.loc[dataframe.eval(query), '49']*dataframe.loc[dataframe.eval(query), '50']*(2/3)+final_score   #final_score * dataframe.loc[dataframe.eval(query), '50']
+        dataframe.loc[dataframe.eval(query), '49'] = final_score * dataframe.loc[dataframe.eval(query), '50'] #dataframe.loc[dataframe.eval(query), '49']*dataframe.loc[dataframe.eval(query), '50']*(2/3)+final_score*dataframe.loc[dataframe.eval(query), '50']*(2/3)   #final_score * dataframe.loc[dataframe.eval(query), '50']
         print("Finished simulation round: ", current_round + 1, " of ", rounds, ", final score: ", final_score,
               "; Epsilon was: ", epsilon, ", time spent appending DF (in  seconds): ", time_appending,
               "; total inference time this round (s): ", time_infering)
-    filename = str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")) + ".csv"
+    if thread_filename=="-1":
+        filename = str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")) + ".csv"
+    else:
+        filename=thread_filename
     print("Average score this training round was: ",aver(scores))
     my_plot.scores.append(aver(scores))
     # print("Dataframe memory usage in bytes: ",dataframe.memory_usage(index=True).sum())
@@ -265,6 +282,34 @@ def simulate(rounds, epsilon, discount_factor):
     dataframe.to_csv(filename)
     return filename
 
+def multithread_simulation(threads, simulation_rounds_per_thread, epsilon, discount_factor):
+    directory_name = "multithread_batches/"+str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    os.makedirs(directory_name)
+    thread_list = []
+    start_time = time.time()
+    for i in range(threads):
+        filename = directory_name+"_"+str(i)
+        # def simulate(rounds, epsilon, discount_factor, thread_filename="-1"):
+        new_thread = threading.Thread(target=simulate,args=(simulation_rounds_per_thread,epsilon,discount_factor,filename))
+        thread_list.append(new_thread)
+        new_thread.start()
+    for current_thread in thread_list:
+        current_thread.join()
+    end_time = time.time()
+    print("Multithreaded simulation time in seconds: "+str(start_time-end_time))
+    csv_files = [f for f in os.listdir(directory_name) if os.isfile(join(directory_name, f))]
+    dataframe_read = False
+    for csv_file in csv_files:
+
+        if not dataframe_read:
+            dataframe_read=True
+            dataframe = pd.read_csv(csv_file)
+        else:
+            new_dataframe = pd.read_csv(csv_file)
+            dataframe = pd.concat(dataframe,new_dataframe)
+    return_filename = "multithreaded_batch"+str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    dataframe.to_csv(return_filename)
+    return return_filename
 
 def train(input_file, visualize_only=False):
     model = MyModel()
@@ -281,12 +326,14 @@ def simulate_and_train(rounds, simulations_per_round, starting_epsilon, starting
     model.load_model()
     epsilon = starting_epsilon
     learning_rate = starting_learning_rate
+    very_tiny_learning_rate = starting_learning_rate*0.001
     for i in range(rounds):
         if epsilon_decay:
             epsilon = starting_epsilon - (i / rounds) * starting_epsilon
         if lr_decay:
-            learning_rate = (starting_learning_rate - (
-                    i / rounds) * starting_learning_rate) + 0.001  # 0 or less doesn't make any sense
+            learning_rate*=pow(0.5,i)
+            #learning_rate = (starting_learning_rate - (
+            #        i / rounds) * starting_learning_rate) + very_tiny_learning_rate  # 0 or less doesn't make any sense
         print("Starting training round ", i + 1, " of ", rounds, ", learning rate is: ", learning_rate)
         filename = simulate(simulations_per_round, epsilon, discount_factor)
         if (draw_plot == True):
@@ -306,13 +353,15 @@ def visualize_spline():
     for x in np.nditer(X_values):
         print("Value at ", x, ": ", score_from_distance(x))
 
+if __name__ == '__main__':
+    multithread_simulation(threads=50, simulation_rounds_per_thread=2, epsilon=0.3, discount_factor=0.85)
 
-model = MyModel().create_model().save("my_model")
-train("training_file.csv", visualize_only=False)
+#model = MyModel().create_model().save("my_model")
+#train("training_file.csv", visualize_only=False)
 
 
-simulate_and_train(rounds=100, simulations_per_round=20, starting_epsilon=0.5, starting_learning_rate=0.01,
-                   draw_plot=True, epsilon_decay=True, lr_decay=True, discount_factor=0.85, epochs_per_round=1,
-                   stop_early=False)
+#simulate_and_train(rounds=15, simulations_per_round=100, starting_epsilon=0.3, starting_learning_rate=0.001,
+#                   draw_plot=True, epsilon_decay=True, lr_decay=True, discount_factor=0.85, epochs_per_round=1,
+#                   stop_early=False)
 #train("training_file.csv", visualize_only=False)
 #simulate(6,0.3,0.9)
