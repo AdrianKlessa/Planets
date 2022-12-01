@@ -2,7 +2,9 @@
 
 ## A simple planets/space simulation (game?).
 
-Attempted to add an AI that tries to get as close as possible to Mars.
+Attempted to add an AI that tries to get as close as possible to Mars. The agent is a small neural network made with Keras.
+
+As of 2022.12.1 the AI scoring function was based on the distance from target, with score=1 for distance of 0 meters and decreasing from there. Fully random play resulted in average score of -0.3, the current version of the AI averages at around 0.5. 
 
 ## Things I learned:
 
@@ -18,3 +20,10 @@ Attempted to add an AI that tries to get as close as possible to Mars.
 - Rather than saving the training to dataframes (in CSV form on the HDD!) each round it would probably be better to save them to numpy and pass around directly. Or pass a dataframe between functions and only save to HDD once in a while.
 
 - I didn't feel like naming the columns of the created dataframes sensibly because there were ~50 of them. Big mistake - lots of issues later on due to providing the AI with the wrong data series and difficulties with finding which data is where.
+
+## Libraries used:
+
+- Numpy
+- Pandas
+- Keras + a bit of direct operations on Tensorflow
+- Scipy for constants and interpolation
