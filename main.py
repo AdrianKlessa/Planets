@@ -20,7 +20,7 @@ EARTH_VELOCITY = 29.72*10**3  # m/s
 EARTH_POS = np.array(tools.normalize_vector(np.array([1,1])),dtype=float)*EARTH_DISTANCE_FROM_SUN
 SPACESHIP_POS = np.array(tools.normalize_vector(np.array([2,1])),dtype=float)*EARTH_DISTANCE_FROM_SUN
 
-FRAMERATE=30
+FRAMERATE=5 #30
 
 # TODO: Fix the positions so that sun is actually in the middle of the screen
 # TODO: Add more planets, change their render size
@@ -98,11 +98,13 @@ model.load_model()
 choice_dictionary = {} #For AI decisions
 current_frame_index = 0
 ROTATION_ANGLE=15 #Has to be the same as in AI
+AI_SAMPLING_INTERVAL = 1#AI.SAMPLING_INTERVAL
+
 def get_AI_controls():
-    if AI_CONTROLLED and current_frame_index%AI.SAMPLING_INTERVAL == 0 and Spaceship.fuel_mass > 0:
+    if AI_CONTROLLED and current_frame_index%AI_SAMPLING_INTERVAL == 0:
         data = Simulation.get_AI_data()
         for i in range(1, 5):
-            a = model.approximate_reward(data, i)  # i is the action, a is the reward
+            a = model.approximate_reward(data, i/5)  # i is the action, a is the reward #TODO: If my custom normalization works then we need to approximate i/5
             choice_dictionary[i] = a
         choice = max(choice_dictionary,
                      key=choice_dictionary.get)
@@ -121,9 +123,10 @@ def get_AI_controls():
 min_distance_from_mars_to_spaceship = Simulation.get_distance_from_mars_to_spaceship()
 # 1/FRAMERATE should make it 1 second in simulation = 1 real second
 # AI probably won't work with a multiplier different than the one it got trained for
-Simulation.multiplier=3333.3333333333326#(1/FRAMERATE) #Seems fairly stable for distance from spaceship to mars when not moving,
+Simulation.multiplier=333#3333.3333333333326#(1/FRAMERATE) #Seems fairly stable for distance from spaceship to mars when not moving,
                                     # up to x100 000 in the UI (so 100 000 * framerate)
 clock.tick(FRAMERATE)
+max_score = -2
 while True:
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:
@@ -168,6 +171,9 @@ while True:
     #print(Simulation.multiplier)
     get_AI_controls()
     current_frame_index+=1
+    if(AI.score_from_distance(Simulation.get_distance_from_mars_to_spaceship())>max_score):
+        max_score=AI.score_from_distance(Simulation.get_distance_from_mars_to_spaceship())
+    print("Score: ",max_score)
     for key, obj in Simulation.list_of_objects.items():
         if key == "Earth":
             draw_body(display,obj, pygame.Color('forestgreen'), 10)

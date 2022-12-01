@@ -111,23 +111,45 @@ class Simulation:
     #min dist
     # --> 46 values
 
-    def get_AI_data(self):
+    def get_AI_data(self, normalize=True):
         counter=0
         data = np.zeros(46)
         for key1, object1 in self.list_of_objects.items():
             pos = object1.position
             vel = object1.velocity
-            data[counter]=pos[0]
-            data[counter+1]=pos[1]
-            data[counter+2]=vel[0]
-            data[counter+3]=vel[1]
+            if normalize:
+                #First we convert to log scale and then normalize that based on observed max/min values to the range of -1;1 (+/-)
+                data[counter]=tools.custom_log(10,pos[0])
+                data[counter+1]=tools.custom_log(10,pos[1])
+                data[counter] = tools.normalize(data[counter],13.0,-13.0)
+                data[counter+1] = tools.normalize(data[counter+1], 13.0, -13.0)
+                data[counter+2]=tools.custom_log(10,vel[0])
+                data[counter+3]=tools.custom_log(10,vel[1])
+                data[counter+2]=tools.normalize(data[counter+2], 5.0, -5.0)
+                data[counter+3]=tools.normalize(data[counter+3], 5.0, -5.0)
+            else:
+                data[counter]=pos[0]
+                data[counter+1]=pos[1]
+                data[counter+2]=vel[0]
+                data[counter+3]=vel[1]
             counter+=4
             if(key1=="Spaceship"):
-                data[39] = object1.rotations_left #TODO : Don't overwrite Neptune's data as a quick hack
-                data[40] = object1.fuel_mass
-                data[41] = object1.current_flow_rate
-                data[42] = self.current_time
-                data[43] = object1.direction[0]
-                data[44] = object1.direction[1]
-                data[45] = self.get_distance_from_mars_to_spaceship()
+                if normalize:
+                    data[39] = object1.rotations_left/100
+                    data[40] = object1.fuel_mass/100000
+                    data[41] = object1.current_flow_rate/3000
+                    data[42] = self.current_time/100423640
+                    data[43] = object1.direction[0]
+                    data[44] = object1.direction[1]
+                    data[45] = tools.custom_log(10,self.get_distance_from_mars_to_spaceship())
+                    data[45] = tools.normalize(data[45],12.0,0.0)
+                else:
+                    data[39] = object1.rotations_left #TODO : Don't overwrite Neptune's data as a quick hack
+                    # TODO: WE'RE ACTUALLY OVERWRITING OUR OWN VELOCITY HERE. WHOOPS.
+                    data[40] = object1.fuel_mass
+                    data[41] = object1.current_flow_rate
+                    data[42] = self.current_time
+                    data[43] = object1.direction[0]
+                    data[44] = object1.direction[1]
+                    data[45] = self.get_distance_from_mars_to_spaceship()
         return data
