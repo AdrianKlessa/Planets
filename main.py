@@ -1,3 +1,5 @@
+import asyncio
+
 import numpy as np
 import pygame
 import sys
@@ -93,65 +95,70 @@ clock.tick(FRAMERATE)
 ROTATION_ANGLE = 15
 current_time = 0
 
-while True:
-    for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                Spaceship.rotate_anticlockwise(ROTATION_ANGLE)
-            elif event.key == pygame.K_RIGHT:
-                Spaceship.rotate_anticlockwise(360 - ROTATION_ANGLE)
-            elif event.key == pygame.K_UP:
-                Spaceship.current_flow_rate = min(Spaceship.max_flow_rate, Spaceship.current_flow_rate + 10)
-            elif event.key == pygame.K_DOWN:
-                Spaceship.current_flow_rate = max(0, Spaceship.current_flow_rate - 10)
-            elif event.key == pygame.K_KP_8:
-                Screen_pos[1] += SCREEN_MOVE_FACTOR
-            elif event.key == pygame.K_KP_2:
-                Screen_pos[1] -= SCREEN_MOVE_FACTOR
-            elif event.key == pygame.K_KP_4:
-                Screen_pos[0] += SCREEN_MOVE_FACTOR
-            elif event.key == pygame.K_KP_6:
-                Screen_pos[0] -= SCREEN_MOVE_FACTOR
-            elif event.key == pygame.K_KP_PLUS:
-                space_factor *= 0.1
-            elif event.key == pygame.K_KP_MINUS:
-                space_factor *= 10
-            elif event.key == pygame.K_z:
-                Simulation.multiplier *= 0.1
-            elif event.key == pygame.K_c:
-                Simulation.multiplier *= 10
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
+async def main():
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    Spaceship.rotate_anticlockwise(ROTATION_ANGLE)
+                elif event.key == pygame.K_RIGHT:
+                    Spaceship.rotate_anticlockwise(360 - ROTATION_ANGLE)
+                elif event.key == pygame.K_UP:
+                    Spaceship.current_flow_rate = min(Spaceship.max_flow_rate, Spaceship.current_flow_rate + 10)
+                elif event.key == pygame.K_DOWN:
+                    Spaceship.current_flow_rate = max(0, Spaceship.current_flow_rate - 10)
+                elif event.key == pygame.K_KP_8:
+                    Screen_pos[1] += SCREEN_MOVE_FACTOR
+                elif event.key == pygame.K_KP_2:
+                    Screen_pos[1] -= SCREEN_MOVE_FACTOR
+                elif event.key == pygame.K_KP_4:
+                    Screen_pos[0] += SCREEN_MOVE_FACTOR
+                elif event.key == pygame.K_KP_6:
+                    Screen_pos[0] -= SCREEN_MOVE_FACTOR
+                elif event.key == pygame.K_KP_PLUS:
+                    space_factor *= 0.1
+                elif event.key == pygame.K_KP_MINUS:
+                    space_factor *= 10
+                elif event.key == pygame.K_z:
+                    Simulation.multiplier *= 0.1
+                elif event.key == pygame.K_c:
+                    Simulation.multiplier *= 10
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-    display.fill((0, 0, 0))
-    Simulation.update()
-    current_time += Simulation.multiplier
-    td = datetime.timedelta(seconds=current_time)
-    print("Current time in seconds: ", current_time)
-    print("Current time in hh:mm:ss", td)
-    print("Distance from earth to the sun: ", Simulation.get_distance_from_earth_to_sun())
-    draw_HUD(math.floor(Spaceship.fuel_mass), math.floor(Spaceship.current_flow_rate),
-             round(Simulation.multiplier * FRAMERATE))
-    for key, obj in Simulation.list_of_objects.items():
-        if key == "Earth":
-            draw_body(display, obj, pygame.Color('forestgreen'), 10)
-        if key == "Sun":
-            draw_body(display, obj, pygame.Color('goldenrod1'), 10)
-        if key == "Mercury":
-            draw_body(display, obj, pygame.Color('darkgrey'), 10)
-        if key == "Venus":
-            draw_body(display, obj, pygame.Color('saddlebrown'), 10)
-        if key == "Mars":
-            draw_body(display, obj, pygame.Color('firebrick3'), 10)
-        if key == "Jupiter":
-            draw_body(display, obj, pygame.Color('orange1'), 10)
-        if key == "Saturn":
-            draw_body(display, obj, pygame.Color('palegoldenrod'), 10)
-        if key == "Uranus":
-            draw_body(display, obj, pygame.Color('paleturquoise'), 10)
-        if key == "Neptune":
-            draw_body(display, obj, pygame.Color('royalblue'), 10)
-        if key == "Spaceship":
-            draw_spaceship(display, obj)
-    pygame.display.update()
+        display.fill((0, 0, 0))
+        Simulation.update()
+        current_time += Simulation.multiplier
+        td = datetime.timedelta(seconds=current_time)
+        print("Current time in seconds: ", current_time)
+        print("Current time in hh:mm:ss", td)
+        print("Distance from earth to the sun: ", Simulation.get_distance_from_earth_to_sun())
+        draw_HUD(math.floor(Spaceship.fuel_mass), math.floor(Spaceship.current_flow_rate),
+                 round(Simulation.multiplier * FRAMERATE))
+        for key, obj in Simulation.list_of_objects.items():
+            if key == "Earth":
+                draw_body(display, obj, pygame.Color('forestgreen'), 10)
+            if key == "Sun":
+                draw_body(display, obj, pygame.Color('goldenrod1'), 10)
+            if key == "Mercury":
+                draw_body(display, obj, pygame.Color('darkgrey'), 10)
+            if key == "Venus":
+                draw_body(display, obj, pygame.Color('saddlebrown'), 10)
+            if key == "Mars":
+                draw_body(display, obj, pygame.Color('firebrick3'), 10)
+            if key == "Jupiter":
+                draw_body(display, obj, pygame.Color('orange1'), 10)
+            if key == "Saturn":
+                draw_body(display, obj, pygame.Color('palegoldenrod'), 10)
+            if key == "Uranus":
+                draw_body(display, obj, pygame.Color('paleturquoise'), 10)
+            if key == "Neptune":
+                draw_body(display, obj, pygame.Color('royalblue'), 10)
+            if key == "Spaceship":
+                draw_spaceship(display, obj)
+        pygame.display.update()
+        await asyncio.sleep(0)
+
+
+asyncio.run(main())
