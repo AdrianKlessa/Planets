@@ -29,9 +29,9 @@ def load_data():
         #for index, row in dt.iterrows():
         for row in csv_reader:
             normal = tools.random_normal_vector()
-            mass = row['Mass (10^24kg)'] * (10 ** 24)
-            perihelion = row['Perihelion (10^6 km)'] * (10 ** 9)
-            aphelion = row['Aphelion (10^6 km)'] * (10 ** 9)
+            mass = float(row['Mass (10^24kg)']) * (10 ** 24)
+            perihelion = float(row['Perihelion (10^6 km)']) * (10 ** 9)
+            aphelion = float(row['Aphelion (10^6 km)']) * (10 ** 9)
             pos = normal * perihelion
             velocityNumber = vis_viva(perihelion, perihelion, aphelion)
             velocityNormal = tools.getPerpendicularVector(normal)
