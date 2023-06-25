@@ -33,7 +33,7 @@ display = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
 display.fill((0, 0, 0))
 
 space_factor = 150 * (
-            10 ** 7)  # Since SI unit of distance is m we would have planets really far away in space, not visible on screen
+        10 ** 7)  # Since SI unit of distance is m we would have planets really far away in space, not visible on screen
 
 # The spaceship
 Spaceship = phys.Spaceship(SPACESHIP_POS[0], SPACESHIP_POS[1], 96570, 0, 0, 92670, 340 * 1000, 2960, 0,
@@ -94,6 +94,7 @@ Simulation.multiplier = (1 / FRAMERATE)
 clock.tick(FRAMERATE)
 ROTATION_ANGLE = 15
 current_time = 0
+
 
 async def main():
     while True:
