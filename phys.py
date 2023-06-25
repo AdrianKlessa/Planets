@@ -1,8 +1,10 @@
 # A planet, a spacecraft, a comet, whatever
-import scipy.constants as spc
+# import scipy.constants as spc
 import numpy as np
 import math
 import tools
+
+G = 6.673 * (10 ** -11)  # Had to remove scipy as it's not supported in web pygame
 
 def normalize_vector(a):
     return (a / np.sqrt(np.sum(a ** 2)))
@@ -70,7 +72,7 @@ class Spaceship(MyPhysObject):  # Default based on Falcon 9, hope I'm not messin
         self.direction=new_direction
 def calculate_gravity(object1, object2):
     distance = np.linalg.norm(object1.position - object2.position)
-    return (spc.G * object1.mass * object2.mass) / (distance ** 2)
+    return (G * object1.mass * object2.mass) / (distance ** 2)
 
 
 class Simulation:
