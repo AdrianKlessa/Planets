@@ -97,6 +97,10 @@ current_time = 0
 
 
 async def main():
+    global Simulation
+    global Spaceship
+    global Screen_pos
+    global current_time
     while True:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
