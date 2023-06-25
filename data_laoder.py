@@ -16,10 +16,8 @@ def vis_viva(r, perihelion, aphelion): #r is the current distance from the sun
     return math.sqrt((spc.G*SUN_MASS)*((2/r)-(1/a)))
 
 
-#  TODO: Fix orbits so that they're not perfect circles
-#   (setting the velocity in the direction perp. to distance from the sun was a mistake)
-#   https://www.google.com/search?client=firefox-b-d&q=vis-viva+equation
-#   http://curious.astro.cornell.edu/about-us/41-our-solar-system/the-earth/orbit/85-how-fast-does-the-earth-go-at-perihelion-and-aphelion-intermediate
+# Dataset from https://www.kaggle.com/datasets/iamsouravbanerjee/planet-dataset
+# Based on NASA data
 
 
 def load_data():
