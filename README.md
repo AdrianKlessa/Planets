@@ -4,7 +4,7 @@
 
 Planets/Sun in the UI not to scale.
 
-## The simulation can be run in-browser [here](https://adrianklessa.github.io/Planets/). Controls on the bottom of the readme.
+## The simulation can be run in-browser [here](https://adrianklessa.github.io/Planets/). Controls on the bottom of the readme. Left-click on the screen when "ready to start is displayed".
 
 Attempted to add an AI that tries to get as close as possible to Mars. The agent is a small neural network made with Keras.
 
