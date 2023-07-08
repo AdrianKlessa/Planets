@@ -4,7 +4,9 @@
 
 Planets/Sun in the UI not to scale.
 
-## The simulation can be run in-browser [here](https://adrianklessa.github.io/Planets/). Controls on the bottom of the readme. Left-click on the screen when "ready to start is displayed".
+# The simulation can be run in-browser [here](https://adrianklessa.github.io/Planets/). 
+
+## Controls on the bottom of the readme. Left-click on the screen when "ready to start" is displayed.
 
 Attempted to add an AI that tries to get as close as possible to Mars. The agent is a small neural network made with Keras.
 
@@ -47,6 +49,11 @@ Z/C - accelerate/deccelerate time (C - 10x faster, Z - 10x slower).
 
 Make sure to use throttle at lower time multipliers to not run out of fuel super fast and zip out of the solar system.
 
-Planetary dataset found on [Kaggle](https://www.kaggle.com/datasets/iamsouravbanerjee/planet-dataset) based on NASA-provided information. 
+Very high time multipliers (10^8 and above) suffer from numerical instability. 
+
+(Since the velocity is simply multiplied by the time multiplier on each loop - this could be fixed by changing the "speedup" logic to actually do more calculations per frame on higher time multipliers)
+
+
+## Planetary dataset found on [Kaggle](https://www.kaggle.com/datasets/iamsouravbanerjee/planet-dataset) based on NASA-provided information. 
 
 (Obligatory note: I'm not affiliated with either the creator of the dataset or NASA).
