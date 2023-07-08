@@ -1,6 +1,10 @@
 # Planets
 
-## A simple planets/space simulation (game?).
+## A simple planets/space simulation (game?) and my first attempt at creating a Q-Learning agent.
+
+Planets/Sun in the UI not to scale.
+
+## The simulation can be run in-browser [here](https://adrianklessa.github.io/Planets/). Controls on the bottom of the readme.
 
 Attempted to add an AI that tries to get as close as possible to Mars. The agent is a small neural network made with Keras.
 
@@ -9,8 +13,8 @@ As of 2022.12.1 the AI scoring function was based on the distance from target, w
 ## Things I learned:
 
 - MSE worked much better than MAE in this problem
-- Normalizing the data helped a lot, batch normalization didn't work too well.
-- Adding intermediate rewards by punishing the AI for rotating more than 60 deg. away from Mars helped due to (slightly) sparse rewards. Tweaking the discount factor would probably help a lot here as well, though.
+- Normalizing the data helped a lot, batch normalization didn't work too well (possibly due to differences between batch averages/variations as single-batch data was correlated).
+- Adding intermediate rewards by punishing the AI for rotating more than 60 deg. away from Mars helped due to (slightly) sparser rewards. Tweaking the discount factor would probably help a lot here as well, though.
 - Graphing the scores with a moving average helps greatly, especially when the scores are very unstable.
 
 ## Issues:
@@ -21,9 +25,28 @@ As of 2022.12.1 the AI scoring function was based on the distance from target, w
 
 - I didn't feel like naming the columns of the created dataframes sensibly because there were ~50 of them. Big mistake - lots of issues later on due to providing the AI with the wrong data series and difficulties with finding which data is where.
 
+## TL;DR : A physics simulation of the solar system turned out well, I'd say. There is a deep Q-learning agent trained based on it, but it's far from perfect - would require a refactor of the code providing it with data and retraining with other/less paramters to improve.
+
 ## Libraries used:
 
 - Numpy
 - Pandas
 - Keras + a bit of direct operations on Tensorflow
 - Scipy for constants and interpolation
+- Pathos (running the simulation in multiple threads for faster data gathering)
+
+# Controls for the spaceship (the red triangle):
+
+Left/Right arrows - rotate
+
+Up/Down arrows - increase/decrease thrust
+
+Numpad arrows (2/4/6/8) - move the camera
+
+Z/C - accelerate/deccelerate time (C - 10x faster, Z - 10x slower). 
+
+Make sure to use throttle at lower time multipliers to not run out of fuel super fast and zip out of the solar system.
+
+Planetary dataset found on [Kaggle](https://www.kaggle.com/datasets/iamsouravbanerjee/planet-dataset) based on NASA-provided information. 
+
+(Obligatory note: I'm not affiliated with either the creator of the dataset or NASA).
